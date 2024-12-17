@@ -1,0 +1,33 @@
+buildscript {
+    repositories {
+        google() // Required for Firebase dependencies
+        mavenCentral() // Recommended for additional dependencies
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.4' // Use a compatible version of the Gradle plugin
+        classpath 'com.google.gms:google-services:4.4.2' // Latest stable version of Google Services plugin
+    }
+}
+
+allprojects {
+    repositories {
+        google() // Required for Firebase dependencies
+        mavenCentral() // Recommended for additional dependencies
+    }
+}
+
+// Define project build directory structure
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+
+// Ensure evaluation depends on the app module
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+// Task for cleaning the build directory
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
