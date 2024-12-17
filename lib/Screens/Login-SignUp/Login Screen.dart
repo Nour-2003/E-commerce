@@ -1,61 +1,359 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../Cubit/Login/Login Cubit.dart';
+import '../../Cubit/Login/Login States.dart';
+import '../../Cubit/Theme/Theme Cubit.dart';
+import '../../Shared/Constants.dart';
+import '../Home/Main Screen.dart';
+import 'Register Screen.dart';
 
-import '../Cubit/Shop/Shop Cubit.dart';
+class LoginPage extends StatefulWidget {
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
 
-class MainScreen extends StatelessWidget {
+class _LoginPageState extends State<LoginPage> {
+  bool isLoading = false;
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginState();
+  }
+
+  Future<void> _checkLoginState() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool? rememberMe = prefs.getBool('rememberMe');
+
+    if (rememberMe == true) {
+      String? email = prefs.getString('email');
+      String? password = prefs.getString('password');
+
+      if (email != null && password != null) {
+        try {
+          setState(() {
+            isLoading = true;
+          });
+
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => MainScreen()),
+          );
+        } catch (e) {
+          print('Auto-login failed: $e');
+        } finally {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _saveLoginState(bool rememberMe, String email, String password) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (rememberMe) {
+      await prefs.setBool('rememberMe', true);
+      await prefs.setString('email', email);
+      await prefs.setString('password', password);
+    } else {
+      await prefs.setBool('rememberMe', false);
+      await prefs.remove('email');
+      await prefs.remove('password');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (BuildContext context) => ShopCubit()
-        ..getData()
-        ..getUserByEmail(FirebaseAuth.instance.currentUser!.email!)
-        ..getCategories()
-        ..getCartData(),
-      child: BlocConsumer<ShopCubit, ShopStates>(
+      create: (BuildContext context) => Shoplogincubit(),
+      child: BlocConsumer<Shoplogincubit, LoginStates>(
         listener: (context, state) {},
         builder: (context, state) {
-          var cubit = ShopCubit.get(context);
           return Scaffold(
-            appBar: AppBar(
-              centerTitle: true,
-              title: Text(cubit.userData?['role'] == 'admin'
-                  ? cubit.adminTitles[cubit.currentIndex]
-                  : cubit.titles[cubit.currentIndex]),
-            ),
-            body: cubit.userData?['role'] == 'admin'
-                ? cubit.adminScreens[cubit.currentIndex]
-                : cubit.screens[cubit.currentIndex],
-            bottomNavigationBar: BottomNavigationBar(
-              elevation: 10,
-              items: cubit.userData?['role'] == 'admin'
-                  ? [
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.home), label: 'Home'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.search), label: 'Search'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.admin_panel_settings),
-                          label: 'Admin Panel'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.person), label: 'Profile'),
-                    ]
-                  : [
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.home), label: 'Home'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.search), label: 'Search'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.shopping_cart), label: 'Cart'),
-                      BottomNavigationBarItem(
-                          icon: Icon(Icons.person), label: 'Profile'),
-                    ],
-              currentIndex: cubit.currentIndex,
-              onTap: (index) {
-                cubit.changeBottomNav(index);
-              },
+            body: Center(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'LOGIN',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text('Login now to browse our hot offers',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 20,
+                              color: Colors.grey,
+                            )),
+                        const SizedBox(height: 20),
+                        defaultTextFormField(
+                          isDark: ThemeCubit.get(context).themebool,
+                          textController: emailController,
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          label: 'Email',
+                          type: TextInputType.emailAddress,
+                          Validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Email must not be empty';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 15),
+                        defaultTextFormField(
+                          isDark: ThemeCubit.get(context).themebool,
+                          textController: passwordController,
+                          prefixIcon: const Icon(Icons.lock),
+                          label: 'Password',
+                          suffixIcon: IconButton(
+                            onPressed: () {
+                              Shoplogincubit.get(context).changePasswordVisibility();
+                            },
+                            icon: Shoplogincubit.get(context).passwordObscure
+                                ? const Icon(Icons.visibility_off)
+                                : const Icon(Icons.visibility),
+                          ),
+                          obscureText: Shoplogincubit.get(context).passwordObscure,
+                          type: TextInputType.visiblePassword,
+                          Validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Password is too short';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  "Remember Me",
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Checkbox(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5)),
+                                  checkColor: Colors.white,
+                                  activeColor: defaultcolor,
+                                  value: ThemeCubit.get(context).rememberMe,
+                                  onChanged: (value) {
+                                    ThemeCubit.get(context).toggleRememberMe(value!);
+                                  },
+                                ),
+                              ],
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                if (emailController.text.isEmpty) {
+                                  AwesomeDialog(
+                                    context: context,
+                                    dialogType: DialogType.error,
+                                    title: 'Forget Password',
+                                    titleTextStyle: GoogleFonts
+                                        .montserrat(
+                                      fontSize: 20,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ),
+                                    descTextStyle:GoogleFonts
+                                        .montserrat(
+                                      fontSize: 17,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ) ,
+                                    dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                    desc: 'Please enter your email to reset your password',
+                                  )..show();
+                                  return;
+                                }
+                                try {
+                                  await FirebaseAuth.instance.sendPasswordResetEmail(
+                                    email: emailController.text,
+                                  );
+                                  AwesomeDialog(
+                                    context: context,
+                                    dialogType: DialogType.success,
+                                    title: 'Forget Password',
+                                    titleTextStyle: GoogleFonts
+                                        .montserrat(
+                                      fontSize: 20,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ),
+                                    descTextStyle:GoogleFonts
+                                        .montserrat(
+                                      fontSize: 17,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ) ,
+                                    dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                    desc: 'Check your email to reset your password',
+                                  )..show();
+                                } catch (e) {
+                                  AwesomeDialog(
+                                    context: context,
+                                    dialogType: DialogType.error,
+                                    title: 'Forget Password',
+                                    titleTextStyle: GoogleFonts
+                                        .montserrat(
+                                      fontSize: 20,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ),
+                                    descTextStyle:GoogleFonts
+                                        .montserrat(
+                                      fontSize: 17,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ) ,
+                                    dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                    desc: 'Please enter a valid email',
+                                  )..show();
+                                }
+                              },
+                              child: const Text(
+                                'Forget Password?',
+                                style: TextStyle(color: Color(0xFF00B96D)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              if (formKey.currentState!.validate()) {
+                                try {
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+
+                                  final credential = await FirebaseAuth.instance
+                                      .signInWithEmailAndPassword(
+                                    email: emailController.text,
+                                    password: passwordController.text,
+                                  );
+
+                                  // Save login state
+                                  _saveLoginState(
+                                    ThemeCubit.get(context).rememberMe,
+                                    emailController.text,
+                                    passwordController.text,
+                                  );
+
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => MainScreen()),
+                                  );
+                                } catch (e) {
+                                  setState(() {
+                                    isLoading = false;
+                                  });
+                                  AwesomeDialog(
+                                    context: context,
+                                    dialogType: DialogType.error,
+                                    title: 'Login Error',
+                                    titleTextStyle: GoogleFonts
+                                        .montserrat(
+                                      fontSize: 20,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ),
+                                    descTextStyle:GoogleFonts
+                                        .montserrat(
+                                      fontSize: 17,
+                                      fontWeight:
+                                      FontWeight
+                                          .bold,
+                                      color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                    ) ,
+                                    dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                    desc: 'The supplied auth credential is incorrect.',
+                                  )..show();
+                                }
+                              }
+                            },
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                const Color(0xFF00B96D),
+                              ),
+                              shape: MaterialStateProperty.all(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text(
+                              'LOGIN',
+                              style: TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const Text('Don\'t have an account?'),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => RegisterScreen()),
+                                );
+                              },
+                              child: const Text(
+                                'REGISTER NOW',
+                                style: TextStyle(color: Color(0xFF00B96D)),
+                              ),
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           );
         },

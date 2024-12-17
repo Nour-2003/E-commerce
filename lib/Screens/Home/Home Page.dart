@@ -10,11 +10,10 @@ import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
 import 'package:mobileproject/Cubit/Theme/Theme%20Cubit.dart';
 import 'package:mobileproject/Models/Product%20Model.dart';
-import 'package:mobileproject/Screens/Category%20Screen.dart';
-import 'package:mobileproject/Screens/Product%20Details%20Screen.dart';
 
-import '../Shared/Constants.dart';
-
+import '../../Shared/Constants.dart';
+import 'Category Screen.dart';
+import 'Product Details Screen.dart';
 class HomePage extends StatelessWidget {
   // final List<String> images = [
   List Data = [];

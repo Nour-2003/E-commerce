@@ -4,14 +4,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobileproject/Screens/Barcode%20Screen.dart';
-import 'package:mobileproject/Screens/Product%20Details%20Screen.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
-import '../Cubit/Shop/Shop Cubit.dart';
-import '../Cubit/Shop/Shop States.dart';
-import '../Cubit/Theme/Theme Cubit.dart';
-import '../Shared/Constants.dart';
+import '../../Cubit/Shop/Shop Cubit.dart';
+import '../../Cubit/Shop/Shop States.dart';
+import '../../Cubit/Theme/Theme Cubit.dart';
+import '../../Shared/Constants.dart';
+import '../Home/Product Details Screen.dart';
+import 'Barcode Screen.dart';
 
 class SearchScreen extends StatefulWidget {
   @override

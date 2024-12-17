@@ -2,15 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobileproject/Screens/Home%20Page.dart';
-import 'package:mobileproject/Screens/Login%20Screen.dart';
-import 'package:mobileproject/Screens/Main%20Screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'Cubit/Shop/Shop Cubit.dart';
 import 'Cubit/Theme/Theme Cubit.dart';
 import 'Cubit/Theme/Theme States.dart';
-import 'Screens/OnBoarding Screen.dart';
+import 'Screens/Home/Main Screen.dart';
+import 'Screens/Home/OnBoarding Screen.dart';
 import 'Services/Dio Package.dart';
 import 'Shared/Constants.dart';
 import 'Shared/Themes.dart';

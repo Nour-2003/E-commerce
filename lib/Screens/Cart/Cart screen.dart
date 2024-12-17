@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobileproject/Cubit/Theme/Theme%20Cubit.dart';
-import '../Cubit/Shop/Shop Cubit.dart';
-import '../Cubit/Shop/Shop States.dart';
+import '../../Cubit/Shop/Shop Cubit.dart';
+import '../../Cubit/Shop/Shop States.dart';
 import 'Show Order Page.dart';
 
 

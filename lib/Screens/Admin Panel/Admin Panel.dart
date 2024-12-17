@@ -9,7 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
 
-import '../Cubit/Theme/Theme Cubit.dart';
+import '../../Cubit/Theme/Theme Cubit.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({Key? key}) : super(key: key);

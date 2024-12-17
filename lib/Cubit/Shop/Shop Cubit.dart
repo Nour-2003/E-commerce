@@ -4,12 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mobileproject/Screens/Admin%20Panel.dart';
-import 'package:mobileproject/Screens/Search%20Screen.dart';
 import '../../Models/Product Model.dart';
-import '../../Screens/Cart screen.dart';
-import '../../Screens/Home Page.dart';
-import '../../Screens/Profile Screen.dart';
+import '../../Screens/Admin Panel/Admin Panel.dart';
+import '../../Screens/Cart/Cart screen.dart';
+import '../../Screens/Home/Home Page.dart';
+import '../../Screens/Profile/Profile Screen.dart';
+import '../../Screens/Search/Search Screen.dart';
 import '../../Services/Dio Package.dart';
 import 'Shop States.dart';
 

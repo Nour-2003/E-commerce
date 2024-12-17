@@ -6,8 +6,7 @@ import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:mobileproject/Shared/Constants.dart';
 
-import '../Cubit/Theme/Theme Cubit.dart';
-
+import '../../Cubit/Theme/Theme Cubit.dart';
 class ProductDetails extends StatefulWidget {
   final String productId;
   late  String title;

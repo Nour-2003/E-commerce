@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:mobileproject/Screens/Main%20Screen.dart';
-import '../Cubit/Login/Login Cubit.dart';
-import '../Cubit/Login/Login States.dart';
-import '../Cubit/Theme/Theme Cubit.dart';
-import '../Shared/Constants.dart';
 
+import '../../Cubit/Login/Login Cubit.dart';
+import '../../Cubit/Login/Login States.dart';
+import '../../Cubit/Theme/Theme Cubit.dart';
+import '../../Shared/Constants.dart';
+import '../Home/Main Screen.dart';
 class RegisterScreen extends StatefulWidget {
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();

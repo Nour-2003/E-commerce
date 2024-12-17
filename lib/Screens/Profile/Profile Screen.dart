@@ -7,12 +7,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
-import 'package:mobileproject/Screens/OnBoarding%20Screen.dart';
+
 import 'package:mobileproject/Shared/Constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Cubit/Theme/Theme Cubit.dart';
-import '../Cubit/Theme/Theme States.dart';
+import '../../Cubit/Theme/Theme Cubit.dart';
+import '../../Cubit/Theme/Theme States.dart';
+import '../Home/OnBoarding Screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   // final String name = "Nour Eldin Hesham";
@@ -195,5 +196,4 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
-
 

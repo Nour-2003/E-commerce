@@ -2,8 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
-
-import '../Cubit/Shop/Shop Cubit.dart';
+import '../../Cubit/Shop/Shop Cubit.dart';
 
 class MainScreen extends StatelessWidget {
   @override

@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
-import 'package:mobileproject/Screens/Product%20Details%20Screen.dart';
 import 'package:mobileproject/Shared/Constants.dart';
+
+import 'Product Details Screen.dart';
 
 class CategoryScreen extends StatelessWidget {
   final String categoryName;
