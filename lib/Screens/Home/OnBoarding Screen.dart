@@ -50,7 +50,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
             },
             child: Text(
               'SKIP',
-              style: TextStyle(fontSize: 20,color: Colors.white),
+              style:GoogleFonts.montserrat(fontSize: 20,color: Colors.white),
             ),
           ),
         ],

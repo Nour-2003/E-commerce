@@ -35,7 +35,7 @@ class _BarcodeScreenState extends State<BarcodeScreen> {
                 statusBarColor: Colors.white,
                 statusBarIconBrightness: Brightness.dark,
               ),
-              title: const Text('Speech Demo'),
+              title: const Text('Barcode Search'),
               backgroundColor: defaultcolor,
               actions: [
                 // Torch Toggle Button
@@ -74,17 +74,14 @@ class _BarcodeScreenState extends State<BarcodeScreen> {
                       final String code = barcode.rawValue ?? "---";
                       debugPrint("Barcode detected: $code");
 
-                      // Query Firebase for the product data
                       try {
                         final productDoc = await FirebaseFirestore.instance
-                            .collection('Products') // Your collection name
-                            .doc(code) // Use the barcode as the document ID
+                            .collection('Products')
+                            .doc(code)
                             .get();
 
                         if (productDoc.exists) {
                           final productData = productDoc.data();
-
-                          // Navigate to ProductDetails with product data
                           _screenOpened = true;
                           Navigator.push(
                             context,
