@@ -1,3 +1,4 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,11 +19,14 @@ class ShopCubit extends Cubit<ShopStates> {
 
   static ShopCubit get(context) => BlocProvider.of(context);
   List firebaseProducts = [];
+
   void getData() async {
-    emit(GetFirebaseDataLoadingState()); // Optional: For showing a loading spinner
+    emit(
+        GetFirebaseDataLoadingState()); // Optional: For showing a loading spinner
     try {
       firebaseProducts.clear();
-      QuerySnapshot query = await FirebaseFirestore.instance.collection('Products').get();
+      QuerySnapshot query =
+          await FirebaseFirestore.instance.collection('Products').get();
       firebaseProducts.addAll(query.docs);
       emit(GetFirebaseDataState());
     } catch (error) {
@@ -36,14 +40,11 @@ class ShopCubit extends Cubit<ShopStates> {
   void getUserByEmail(String email) {
     emit(UserLoading()); // Emit loading state
     try {
-
-      CollectionReference users = FirebaseFirestore.instance.collection('Users');
-
+      CollectionReference users =
+          FirebaseFirestore.instance.collection('Users');
 
       users.where('email', isEqualTo: email).get().then((querySnapshot) {
-
         if (querySnapshot.docs.isNotEmpty) {
-
           userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
           emit(UserLoaded(userData!));
         } else {
@@ -56,6 +57,7 @@ class ShopCubit extends Cubit<ShopStates> {
       emit(UserError('Unexpected error occurred: $e')); // Emit error state
     }
   }
+
   int currentIndex = 0;
   List<String> titles = [
     'Home',
@@ -63,12 +65,7 @@ class ShopCubit extends Cubit<ShopStates> {
     'Cart',
     'Profile',
   ];
-  List<String> adminTitles = [
-    'Home',
-    'Search',
-    'Admin Panel',
-    'Profile'
-  ];
+  List<String> adminTitles = ['Home', 'Search', 'Admin Panel', 'Profile'];
   List<Widget> screens = [
     HomePage(),
     SearchScreen(),
@@ -81,7 +78,8 @@ class ShopCubit extends Cubit<ShopStates> {
     AddProductScreen(),
     ProfileScreen(),
   ];
-  List CartItems =[];
+  List CartItems = [];
+
   void getCartData() {
     emit(GetCartData());
     FirebaseFirestore.instance
@@ -97,8 +95,8 @@ class ShopCubit extends Cubit<ShopStates> {
     });
   }
 
-  Future<void> addToCart(
-      String title, String price, String description, String category, String imageUrl, String rating, String count) async {
+  Future<void> addToCart(String title, String price, String description,
+      String category, String imageUrl, String rating, String count) async {
     try {
       // Get the current user's ID
       final userId = FirebaseAuth.instance.currentUser!.uid;
@@ -113,7 +111,8 @@ class ShopCubit extends Cubit<ShopStates> {
       if (querySnapshot.docs.isNotEmpty) {
         // Product already exists in the cart, update the quantity
         final docId = querySnapshot.docs.first.id; // Get the document ID
-        final currentQuantity = querySnapshot.docs.first.data()['quantity'] as int;
+        final currentQuantity =
+            querySnapshot.docs.first.data()['quantity'] as int;
 
         await FirebaseFirestore.instance.collection('Cart').doc(docId).update({
           'quantity': currentQuantity + 1,
@@ -142,18 +141,18 @@ class ShopCubit extends Cubit<ShopStates> {
     }
   }
 
-
   void changeBottomNav(int index) {
     currentIndex = index;
     emit(ShopChangeBottomNavState());
   }
+
   ProductModel productModel = ProductModel(
-      products : [],
+    products: [],
   );
 
-
-  List products =[];
+  List products = [];
   List filteredProducts = [];
+
   void loadProducts(List newProducts) {
     products = newProducts;
     filteredProducts = List.from(products);
@@ -168,8 +167,12 @@ class ShopCubit extends Cubit<ShopStates> {
     } else {
       filteredProducts = products
           .where((product) =>
-      product['title'].toLowerCase().contains(searchTerm.toLowerCase()) ||
-          product['category'].toLowerCase().contains(searchTerm.toLowerCase()))
+              product['title']
+                  .toLowerCase()
+                  .contains(searchTerm.toLowerCase()) ||
+              product['category']
+                  .toLowerCase()
+                  .contains(searchTerm.toLowerCase()))
           .toList();
     }
 
@@ -179,31 +182,186 @@ class ShopCubit extends Cubit<ShopStates> {
   ProductModel categoryProductModel = ProductModel(
     products: [],
   );
+  void toggleFavoriteStatus(String productId,context) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final favoritesRef = FirebaseFirestore.instance.collection('Users').doc(userId).collection('favorites');
+
+    final favoriteDoc = await favoritesRef.doc(productId).get();
+    if (favoriteDoc.exists) {
+      await favoritesRef.doc(productId).delete().then((value) => AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.rightSlide,
+        title: 'Success',
+        desc: 'Product removed from favorites.',
+        btnOkOnPress: () {},
+      )..show(
+      ));
+    } else {
+      await favoritesRef.doc(productId).set({'productId': productId}).then((value) => AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.rightSlide,
+        title: 'Success',
+        desc: 'Product added to favorites.',
+        btnOkOnPress: () {},
+      )..show(
+      ));
+    }
+
+    emit(FavoriteStatusChangedState());
+  }
+
+  Object isFavorite(String productId) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return false;
+
+    final favoriteDoc = FirebaseFirestore.instance.collection('Users').doc(userId).collection('favorites').doc(productId);
+    return favoriteDoc.get().then((doc) => doc.exists);
+  }
+  Future<void> updateCategoryAndProducts(
+      String title, String newName, String newImageUrl) async {
+    emit(CategoriesLoading());
+    try {
+      // Query the category document by title
+      final categorySnapshot = await FirebaseFirestore.instance
+          .collection('Categories')
+          .where('name', isEqualTo: title)
+          .get();
+
+      if (categorySnapshot.docs.isEmpty) {
+        throw Exception('No category found with the title: $title');
+      }
+
+      // Assuming titles are unique, get the first matching category document
+      final categoryDoc = categorySnapshot.docs.first;
+
+      // Update the category
+      await FirebaseFirestore.instance
+          .collection('Categories')
+          .doc(categoryDoc.id)
+          .update({
+        'name': newName.isNotEmpty ? newName : categoryDoc['name'],
+        'imageUrl': newImageUrl.isNotEmpty ? newImageUrl : categoryDoc['imageUrl'],
+      });
+
+      // Query all products with the old category name
+      final productsSnapshot = await FirebaseFirestore.instance
+          .collection('Products')
+          .where('category', isEqualTo: title)
+          .get();
+
+      if (productsSnapshot.docs.isNotEmpty) {
+        // Create a batch to update all products
+        final batch = FirebaseFirestore.instance.batch();
+
+        for (final productDoc in productsSnapshot.docs) {
+          final productRef = FirebaseFirestore.instance
+              .collection('Products')
+              .doc(productDoc.id);
+
+          batch.update(productRef, {'category': newName});
+        }
+
+        // Commit the batch
+        await batch.commit();
+      }
+
+      emit(CategoryUpdatedSuccessState());
+    } catch (e) {
+      print('Error updating category and products: $e');
+      emit(CategoryUpdatedErrorState(e.toString()));
+    }
+  }
+
+
   List categoryProducts = [];
-List firebaseCategories = [];
+  List firebaseCategories = [];
+
   void getCategories() async {
     emit(ShopGetCategories());
     try {
-      QuerySnapshot query = await FirebaseFirestore.instance.collection('Categories').get();
+      QuerySnapshot query =
+          await FirebaseFirestore.instance.collection('Categories').get();
       firebaseCategories = query.docs;
       emit(ShopGetCategoriesSuccess());
     } catch (error) {
       emit(ShopGetCategoriesError());
     }
   }
+
   String selectedCategory = '';
+
   void selectCategory(String categoryName) {
     if (selectedCategory != categoryName) {
       selectedCategory = categoryName;
       getProductsFromCategory(categoryName);
     }
   }
+
+  void editCategory(String title, String name, String imageUrl) async {
+    if (title.isEmpty) {
+      print("Title cannot be empty.");
+      emit(ProductUpdatedErrorState("Title cannot be empty."));
+      return;
+    }
+
+    try {
+      // Query the collection to find the document by title
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('Categories')
+          .where('title', isEqualTo: title)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        print("Category with the specified title not found.");
+        emit(ProductUpdatedErrorState("Category with the specified title not found."));
+        return;
+      }
+
+      // Assuming titles are unique, take the first matching document
+      final doc = querySnapshot.docs.first;
+
+      // Prepare update data
+      Map<String, dynamic> updateData = {};
+      if (name.isNotEmpty) {
+        updateData['name'] = name;
+      }
+      if (imageUrl.isNotEmpty) {
+        updateData['imageUrl'] = imageUrl;
+      }
+
+      if (updateData.isEmpty) {
+        print("No valid fields to update.");
+        emit(ProductUpdatedErrorState("No valid fields to update."));
+        return;
+      }
+
+      // Update the document
+      await FirebaseFirestore.instance
+          .collection('Categories')
+          .doc(doc.id)
+          .update(updateData);
+
+      emit(ProductsUpdatedState());
+    } catch (error) {
+      print("Error updating category: $error");
+      emit(ProductUpdatedErrorState(error.toString()));
+    }
+  }
+
+
   void getProductsFromCategory(String categoryName) async {
     emit(ShopLoadingCatProductsDataState());
     try {
       categoryProducts.clear(); // Clear existing products first
 
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Products').where('category', isEqualTo: categoryName).get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('Products')
+          .where('category', isEqualTo: categoryName)
+          .get();
 
       // Filter products for the specified category
       querySnapshot.docs.forEach((doc) {
@@ -219,30 +377,31 @@ List firebaseCategories = [];
     }
   }
 
-
-
-  Future<void> updateProduct(String productId, String newTitle, String newPrice, String newDescription) async {
+  Future<void> updateProduct(String productId, String newTitle, String newPrice,
+      String newDescription) async {
     try {
       // Update the main 'Products' collection
-      await FirebaseFirestore.instance.collection('Products').doc(productId).update({
+      await FirebaseFirestore.instance
+          .collection('Products')
+          .doc(productId)
+          .update({
         'title': newTitle,
         'price': newPrice,
         'description': newDescription,
       });
 
       // Update local Data list
-      int index = firebaseProducts.indexWhere((product) => product['id'] == productId);
+      int index =
+          firebaseProducts.indexWhere((product) => product['id'] == productId);
       if (index != -1) {
         firebaseProducts[index]['title'] = newTitle;
         firebaseProducts[index]['price'] = newPrice;
         firebaseProducts[index]['description'] = newDescription;
         emit(ProductsUpdatedState()); // Trigger UI rebuild
       }
-
     } catch (error) {
       print("Error updating product: $error");
       emit(ProductUpdatedErrorState(error.toString()));
     }
   }
-
 }

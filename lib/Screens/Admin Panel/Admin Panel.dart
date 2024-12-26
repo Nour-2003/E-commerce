@@ -10,7 +10,7 @@ import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
 
 import '../../Cubit/Theme/Theme Cubit.dart';
-
+import '../../Shared/Constants.dart';
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({Key? key}) : super(key: key);
 
@@ -21,6 +21,7 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey1 = GlobalKey<FormState>(); // For Add Product
   final _formKey2 = GlobalKey<FormState>(); // For Add Category
+  DateTime? selectedDate;
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -28,13 +29,45 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _imageUrlController = TextEditingController();
   final TextEditingController _ratingController = TextEditingController();
   final TextEditingController _countController = TextEditingController();
-
+  final TextEditingController dateController = TextEditingController();
   String? _selectedCategory;
   List<String> categories = [];
   CollectionReference Products =
       FirebaseFirestore.instance.collection('Products');
   CollectionReference inventoryRef =
       FirebaseFirestore.instance.collection('Inventory');
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: const Color(0xFF00B96D),
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        dateController.text = DateFormat('MMM dd, yyyy').format(picked);
+      });
+    }
+  }
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
   Future<void> addUser() async {
     try {
       // Add the product to the main 'Products' collection
@@ -59,13 +92,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }).catchError((error) {
         print("Failed to add product to 'Products' collection: $error");
       });
-
     } catch (error) {
       print("Error in addUser function: $error");
     }
   }
-
-
 
   void getCategories() async {
     try {
@@ -77,6 +107,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
       });
     } catch (error) {
       print('Error fetching categories: $error');
+    }
+  }
+  void updateCategory(String selectedCategory, String updatedTitle, String updatedImageUrl) async {
+    try {
+      // Query the Firestore collection to find the document with the matching name
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('Categories')
+          .where('name', isEqualTo: selectedCategory)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Assuming there's only one matching document
+        final docId = querySnapshot.docs.first.id;
+
+        // Update the document with the new data
+        await FirebaseFirestore.instance
+            .collection('Categories')
+            .doc(docId)
+            .update({
+          'name': updatedTitle,
+          'imageUrl': updatedImageUrl,
+        });
+
+        print('Category updated successfully.');
+      } else {
+        print('No category found with the name: $selectedCategory');
+      }
+    } catch (e) {
+      print('Error updating category: $e');
     }
   }
 
@@ -101,7 +160,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 children: [
                   // Add Product Section
                   ExpansionTile(
-                    title:Row(
+                    title: Row(
                       children: [
                         Icon(
                           Icons.add_box_outlined,
@@ -128,11 +187,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               children: [
                                 // Title Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _titleController,
-                                  decoration: const InputDecoration(
+                                  decoration:  InputDecoration(
                                     labelText: 'Title',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.title,color: defaultcolor,)
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -145,11 +207,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Price Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _priceController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Price',
-                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.money,color: defaultcolor,),
+                                    border: const OutlineInputBorder(),
                                   ),
                                   keyboardType: TextInputType.number,
                                   validator: (value) {
@@ -166,10 +231,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Description Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _descriptionController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Description',
+                                    prefixIcon: Icon(Icons.description,color: defaultcolor),
                                     border: OutlineInputBorder(),
                                   ),
                                   maxLines: 3,
@@ -184,11 +252,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Category Dropdown
                                 DropdownButtonFormField<String>(
-                                  dropdownColor: ThemeCubit.get(context).themebool?Colors.grey[800]:Colors.white,
-                                    style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
-                                  decoration: const InputDecoration(
+                                  dropdownColor:
+                                      ThemeCubit.get(context).themebool
+                                          ? Colors.grey[800]
+                                          : Colors.white,
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
+                                  decoration: InputDecoration(
                                     labelText: 'Category',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.category,color: defaultcolor),
                                   ),
                                   value: _selectedCategory,
                                   items: categories
@@ -213,11 +287,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Image URL Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _imageUrlController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Image URL',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.image,color: defaultcolor),
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -230,11 +307,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Rating Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _ratingController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Rating (Rate)',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.star,color: defaultcolor),
                                   ),
                                   keyboardType: TextInputType.number,
                                   validator: (value) {
@@ -251,11 +331,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                                 // Count Field
                                 TextFormField(
-                                    style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black) ,
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _countController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Product Count',
                                     border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.shopping_cart,color: defaultcolor),
                                   ),
                                   keyboardType: TextInputType.number,
                                   validator: (value) {
@@ -285,23 +368,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             title: 'Add Product',
                                             desc: 'Product Added Successfully',
                                             btnOkOnPress: () {},
-                                            titleTextStyle: GoogleFonts
-                                                .montserrat(
+                                            titleTextStyle:
+                                                GoogleFonts.montserrat(
                                               fontSize: 20,
-                                              fontWeight:
-                                              FontWeight
-                                                  .bold,
-                                              color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              color: ThemeCubit.get(context)
+                                                      .themebool
+                                                  ? Colors.white
+                                                  : Colors.black,
                                             ),
-                                            descTextStyle:GoogleFonts
-                                                .montserrat(
+                                            descTextStyle:
+                                                GoogleFonts.montserrat(
                                               fontSize: 17,
-                                              fontWeight:
-                                              FontWeight
-                                                  .bold,
-                                              color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
-                                            ) ,
-                                            dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              color: ThemeCubit.get(context)
+                                                      .themebool
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                            ),
+                                            dialogBackgroundColor:
+                                                ThemeCubit.get(context)
+                                                        .themebool
+                                                    ? Colors.grey[800]
+                                                    : Colors.white,
                                           ).show();
                                           ShopCubit.get(context).getData();
                                         });
@@ -323,7 +412,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     height: 10,
                   ),
                   ExpansionTile(
-                    title:Row(
+                    title: Row(
                       children: [
                         Icon(
                           Icons.list_alt,
@@ -350,11 +439,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               children: [
                                 // Title Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _titleController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'Title',
                                     border: OutlineInputBorder(),
+                                    prefixIcon:  Icon(Icons.title,color: defaultcolor,)
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -366,10 +458,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 const SizedBox(height: 16),
                                 // ImageUrl Field
                                 TextFormField(
-                                  style: ThemeCubit.get(context).themebool ?  TextStyle(color: Colors.white):TextStyle(color: Colors.black),
+                                  style: ThemeCubit.get(context).themebool
+                                      ? TextStyle(color: Colors.white)
+                                      : TextStyle(color: Colors.black),
                                   controller: _imageUrlController,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'ImageUrl',
+                                    prefixIcon: Icon(
+                                      Icons.image,color: defaultcolor,
+                                    ),
                                     border: OutlineInputBorder(),
                                   ),
                                   keyboardType: TextInputType.text,
@@ -401,26 +498,33 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             title: 'Add Category',
                                             desc: 'Category Added Successfully',
                                             btnOkOnPress: () {},
-                                            titleTextStyle: GoogleFonts
-                                                .montserrat(
+                                            titleTextStyle:
+                                                GoogleFonts.montserrat(
                                               fontSize: 20,
-                                              fontWeight:
-                                              FontWeight
-                                                  .bold,
-                                              color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                              color: ThemeCubit.get(context)
+                                                      .themebool
+                                                  ? Colors.white
+                                                  : Colors.black,
                                             ),
-                                            descTextStyle:GoogleFonts
-                                                .montserrat(
+                                            descTextStyle:
+                                                GoogleFonts.montserrat(
                                               fontSize: 17,
-                                              fontWeight:
-                                              FontWeight
-                                                  .bold,
-                                              color: ThemeCubit.get(context).themebool ? Colors.white:Colors.black,
-                                            ) ,
-                                            dialogBackgroundColor: ThemeCubit.get(context).themebool ? Colors.grey[800]:Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              color: ThemeCubit.get(context)
+                                                      .themebool
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                            ),
+                                            dialogBackgroundColor:
+                                                ThemeCubit.get(context)
+                                                        .themebool
+                                                    ? Colors.grey[800]
+                                                    : Colors.white,
                                           )..show();
                                           getCategories();
-                                          ShopCubit.get(context).getCategories();
+                                          ShopCubit.get(context)
+                                              .getCategories();
                                         });
                                         _imageUrlController.clear();
                                         _titleController.clear();
@@ -440,373 +544,533 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   SizedBox(
                     height: 10,
                   ),
-            ExpansionTile(
-              title: Row(
-                children: [
-                  Icon(
-                    Icons.receipt_long_rounded,
-                    size: 24,
+                  // Get Orders Section
+                  SizedBox(
+                    height: 10,
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'All Transactions',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  ExpansionTile(
+                    title: Row(
+                      children: [
+                        Icon(
+                          Icons.receipt_long_rounded,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'All Transactions',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('Orders').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
-                        ),
-                      );
-                    }
-
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Error fetching orders',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 16,
-                                color: Colors.red[300],
+                    children: [
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('Orders')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Theme.of(context).primaryColor),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                            );
+                          }
 
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.shopping_bag_outlined,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No orders found',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final orders = snapshot.data!.docs;
-
-                    return ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: orders.length,
-                      itemBuilder: (context, index) {
-                        final order = orders[index];
-                        final items = order['items'] as List<dynamic>;
-                        final status = order['status'];
-                        final total = order['total'];
-                        final timestamp = order['timestamp'];
-                        final rating = order['rating'] ?? 0;
-
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                          child: Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                              side: BorderSide(
-                                color: Theme.of(context).dividerColor.withOpacity(0.1),
-                                width: 1,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: ExpansionTile(
-                                tilePadding: EdgeInsets.zero,
-                                childrenPadding: const EdgeInsets.symmetric(vertical: 12),
-                                title: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.shopping_bag_outlined,
-                                                size: 20,
-                                                color: Theme.of(context).primaryColor,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Flexible(
-                                                child: Text(
-                                                  'Order ID: ${order.id.substring(0, 8)}...',
-                                                  style: GoogleFonts.montserrat(
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: status == 'pending'
-                                                ? Colors.orange.withOpacity(0.1)
-                                                : Colors.green.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                status == 'pending'
-                                                    ? Icons.pending_outlined
-                                                    : Icons.check_circle_outline,
-                                                size: 16,
-                                                color: status == 'pending'
-                                                    ? Colors.orange
-                                                    : Colors.green,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                status,
-                                                style: GoogleFonts.montserrat(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: status == 'pending'
-                                                      ? Colors.orange
-                                                      : Colors.green,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.attach_money,
-                                                size: 18,
-                                                color: Theme.of(context).primaryColor,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '\$${total.toString()}',
-                                                style: GoogleFonts.montserrat(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).primaryColor,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Text(
-                                          DateFormat('MMM dd, yyyy').format(timestamp.toDate()),
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 13,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.amber.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          RatingBarIndicator(
-                                            rating: rating.toDouble(),
-                                            itemBuilder: (context, _) => const Icon(
-                                              Icons.star_rounded,
-                                              color: Colors.amber,
-                                            ),
-                                            itemCount: 5,
-                                            itemSize: 18.0,
-                                            direction: Axis.horizontal,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            rating.toString(),
-                                            style: GoogleFonts.montserrat(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.amber[800],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Divider(height: 24),
-                                  ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: items.length,
-                                    itemBuilder: (context, itemIndex) {
-                                      final item = items[itemIndex];
-                                      return AnimatedPadding(
-                                        duration: const Duration(milliseconds: 300),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 8,
-                                          horizontal: 4,
-                                        ),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: Theme.of(context).dividerColor.withOpacity(0.1),
-                                            ),
-                                          ),
-                                          child: ListTile(
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
-                                            ),
-                                            leading: Container(
-                                              width: 80,
-                                              height: 80,
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(8),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.1),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
-                                                child: Image.network(
-                                                  item['imageUrl'],
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) =>
-                                                      Container(
-                                                        color: Colors.grey[200],
-                                                        child: const Icon(
-                                                          Icons.image_not_supported_outlined,
-                                                          color: Colors.grey,
-                                                        ),
-                                                      ),
-                                                ),
-                                              ),
-                                            ),
-                                            title: Text(
-                                              item['title'],
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.montserrat(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            subtitle: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const SizedBox(height: 8),
-                                                Row(
-                                                  children: [
-                                                    _buildInfoChip(
-                                                      context,
-                                                      'Qty: ${item['quantity']}',
-                                                      Icons.shopping_cart_outlined,
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    _buildInfoChip(
-                                                      context,
-                                                      '\$${item['price']}',
-                                                      Icons.attach_money,
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.green.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    'Subtotal: \$${(double.parse(item['price']) * item['quantity']).toStringAsFixed(2)}',
-                                                    style: GoogleFonts.montserrat(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: Colors.green[700],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                  Icon(Icons.error_outline,
+                                      size: 48, color: Colors.red[300]),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Error fetching orders',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 16,
+                                      color: Colors.red[300],
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
+                            );
+                          }
+
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.shopping_bag_outlined,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No orders found',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          var orders = snapshot.data!.docs;
+
+                          // Filter orders based on selected date
+                          if (selectedDate != null) {
+                            orders = orders.where((order) {
+                              final orderDate = (order['timestamp'] as Timestamp).toDate();
+                              return isSameDay(orderDate, selectedDate!);
+                            }).toList();
+                          }
+
+                          if (orders.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                                    child: TextFormField(
+                                      style: TextStyle(
+                                        color: ThemeCubit.get(context).themebool
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
+                                      controller: dateController,
+                                      readOnly: true,
+                                      decoration: InputDecoration(
+                                        labelText: 'Enter Date',
+                                        prefixIcon: Icon(Icons.calendar_today),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                      onTap: () => _selectDate(context),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No orders found for selected date',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 16,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+                                child: TextFormField(
+                                  style: TextStyle(
+                                    color: ThemeCubit.get(context).themebool
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                  controller: dateController,
+                                  readOnly: true,
+                                  decoration: InputDecoration(
+                                    labelText: 'Enter Date',
+                                    prefixIcon: Icon(Icons.calendar_today),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  onTap: () => _selectDate(context),
+                                ),
+                              ),
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: orders.length,
+                                itemBuilder: (context, index) {
+                                  final order = orders[index];
+                                  final items = order['items'] as List<dynamic>;
+                                  final status = order['status'];
+                                  final total = order['total'];
+                                  final timestamp = order['timestamp'];
+                                  final rating = order['rating'] ?? 0;
+
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 500),
+                                    curve: Curves.easeInOut,
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 16),
+                                    child: Card(
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(15),
+                                        side: BorderSide(
+                                          color: Theme.of(context)
+                                              .dividerColor
+                                              .withOpacity(0.1),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: ExpansionTile(
+                                          tilePadding: EdgeInsets.zero,
+                                          childrenPadding:
+                                          const EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          title: Column(
+                                            crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Expanded(
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .shopping_bag_outlined,
+                                                          size: 20,
+                                                          color: Theme.of(context)
+                                                              .primaryColor,
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Flexible(
+                                                          child: Text(
+                                                            'Order ID: ${order.id.substring(0, 8)}...',
+                                                            style: GoogleFonts
+                                                                .montserrat(
+                                                              fontSize: 15,
+                                                              fontWeight:
+                                                              FontWeight.w600,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: status == 'pending'
+                                                          ? Colors.orange
+                                                          .withOpacity(0.1)
+                                                          : Colors.green
+                                                          .withOpacity(0.1),
+                                                      borderRadius:
+                                                      BorderRadius.circular(20),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                      MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          status == 'pending'
+                                                              ? Icons
+                                                              .pending_outlined
+                                                              : Icons
+                                                              .check_circle_outline,
+                                                          size: 16,
+                                                          color: status == 'pending'
+                                                              ? Colors.orange
+                                                              : Colors.green,
+                                                        ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          status,
+                                                          style: GoogleFonts
+                                                              .montserrat(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                            FontWeight.w600,
+                                                            color:
+                                                            status == 'pending'
+                                                                ? Colors.orange
+                                                                : Colors.green,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Row(
+                                                mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context)
+                                                          .primaryColor
+                                                          .withOpacity(0.1),
+                                                      borderRadius:
+                                                      BorderRadius.circular(12),
+                                                    ),
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.attach_money,
+                                                          size: 18,
+                                                          color: Theme.of(context)
+                                                              .primaryColor,
+                                                        ),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          '\$${total.toString()}',
+                                                          style: GoogleFonts
+                                                              .montserrat(
+                                                            fontSize: 15,
+                                                            fontWeight:
+                                                            FontWeight.bold,
+                                                            color: Theme.of(context)
+                                                                .primaryColor,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    DateFormat('MMM dd, yyyy')
+                                                        .format(timestamp.toDate()),
+                                                    style: GoogleFonts.montserrat(
+                                                      fontSize: 13,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 6,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                  Colors.amber.withOpacity(0.1),
+                                                  borderRadius:
+                                                  BorderRadius.circular(12),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    RatingBarIndicator(
+                                                      rating: rating.toDouble(),
+                                                      itemBuilder: (context, _) =>
+                                                      const Icon(
+                                                        Icons.star_rounded,
+                                                        color: Colors.amber,
+                                                      ),
+                                                      itemCount: 5,
+                                                      itemSize: 18.0,
+                                                      direction: Axis.horizontal,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      rating.toString(),
+                                                      style: GoogleFonts.montserrat(
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Colors.amber[800],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          children: [
+                                            const Divider(height: 24),
+                                            ListView.builder(
+                                              shrinkWrap: true,
+                                              physics:
+                                              const NeverScrollableScrollPhysics(),
+                                              itemCount: items.length,
+                                              itemBuilder: (context, itemIndex) {
+                                                final item = items[itemIndex];
+                                                return AnimatedPadding(
+                                                  duration: const Duration(
+                                                      milliseconds: 300),
+                                                  padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                    horizontal: 4,
+                                                  ),
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                      BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: Theme.of(context)
+                                                            .dividerColor
+                                                            .withOpacity(0.1),
+                                                      ),
+                                                    ),
+                                                    child: ListTile(
+                                                      contentPadding:
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 8,
+                                                      ),
+                                                      leading: Container(
+                                                        width: 80,
+                                                        height: 80,
+                                                        decoration: BoxDecoration(
+                                                          borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black
+                                                                  .withOpacity(0.1),
+                                                              blurRadius: 8,
+                                                              offset: const Offset(
+                                                                  0, 2),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: ClipRRect(
+                                                          borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                          child: Image.network(
+                                                            item['imageUrl'],
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder: (context,
+                                                                error,
+                                                                stackTrace) =>
+                                                                Container(
+                                                                  color:
+                                                                  Colors.grey[200],
+                                                                  child: const Icon(
+                                                                    Icons
+                                                                        .image_not_supported_outlined,
+                                                                    color: Colors.grey,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      title: Text(
+                                                        item['title'],
+                                                        maxLines: 2,
+                                                        overflow:
+                                                        TextOverflow.ellipsis,
+                                                        style:
+                                                        GoogleFonts.montserrat(
+                                                          fontSize: 15,
+                                                          fontWeight:
+                                                          FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                      subtitle: Column(
+                                                        crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                        children: [
+                                                          const SizedBox(height: 8),
+                                                          Row(
+                                                            children: [
+                                                              _buildInfoChip(
+                                                                context,
+                                                                'Qty: ${item['quantity']}',
+                                                                Icons
+                                                                    .shopping_cart_outlined,
+                                                              ),
+                                                              const SizedBox(
+                                                                  width: 8),
+                                                              _buildInfoChip(
+                                                                context,
+                                                                '\$${item['price']}',
+                                                                Icons.attach_money,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(height: 8),
+                                                          Container(
+                                                            padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 4,
+                                                            ),
+                                                            decoration:
+                                                            BoxDecoration(
+                                                              color: Colors.green
+                                                                  .withOpacity(0.1),
+                                                              borderRadius:
+                                                              BorderRadius
+                                                                  .circular(6),
+                                                            ),
+                                                            child: Text(
+                                                              'Subtotal: \$${(double.parse(item['price']) * item['quantity']).toStringAsFixed(2)}',
+                                                              style: GoogleFonts
+                                                                  .montserrat(
+                                                                fontSize: 13,
+                                                                fontWeight:
+                                                                FontWeight.w600,
+                                                                color: Colors
+                                                                    .green[700],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      )
+                    ],
+                  ),
                   SizedBox(
                     height: 10,
                   ),
@@ -832,17 +1096,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       StreamBuilder<QuerySnapshot>(
                         stream: inventoryRef.snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
                           }
                           if (snapshot.hasError) {
-                            return Center(child: Text('Error fetching inventory data.'));
+                            return Center(
+                                child: Text('Error fetching inventory data.'));
                           }
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
                             return Center(
                               child: Text(
                                 'No inventory data found.',
-                                style: GoogleFonts.montserrat(fontSize: 16, color: Colors.grey),
+                                style: GoogleFonts.montserrat(
+                                    fontSize: 16, color: Colors.grey),
                               ),
                             );
                           }
@@ -855,7 +1123,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           for (var doc in inventoryItems) {
                             var data = doc.data() as Map<String, dynamic>;
                             var productName = data['name'];
-                            var quantity = double.tryParse(data['quantity'].toString()) ?? 0.0;
+                            var quantity =
+                                double.tryParse(data['quantity'].toString()) ??
+                                    0.0;
 
                             if (quantity > 0) {
                               quantityMap[productName] = quantity;
@@ -863,25 +1133,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           }
 
                           // Convert to sorted list
-                          List<MapEntry<String, double>> sortedList = quantityMap.entries.toList()
-                            ..sort((a, b) => b.value.compareTo(a.value));
+                          List<MapEntry<String, double>> sortedList =
+                              quantityMap.entries.toList()
+                                ..sort((a, b) => b.value.compareTo(a.value));
 
                           return Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
                               children: [
                                 AspectRatio(
-                                  aspectRatio: 1.4, // Smaller aspect ratio for a smaller chart
+                                  aspectRatio: 1.4,
+                                  // Smaller aspect ratio for a smaller chart
                                   child: PieChart(
                                     PieChartData(
                                       sectionsSpace: 3,
                                       borderData: FlBorderData(show: false),
                                       sections: sortedList.take(5).map((entry) {
-                                        double percentage = (entry.value / quantityMap.values.fold(0.0, (sum, quantity) => sum + quantity)) * 100;
+                                        double percentage = (entry.value /
+                                                quantityMap.values.fold(
+                                                    0.0,
+                                                    (sum, quantity) =>
+                                                        sum + quantity)) *
+                                            100;
                                         return PieChartSectionData(
                                           value: entry.value,
-                                          title: '${percentage.toStringAsFixed(1)}%',
-                                          color: Colors.primaries[sortedList.indexOf(entry) % Colors.primaries.length],
+                                          title:
+                                              '${percentage.toStringAsFixed(1)}%',
+                                          color: Colors.primaries[
+                                              sortedList.indexOf(entry) %
+                                                  Colors.primaries.length],
                                           radius: 50,
                                           titleStyle: GoogleFonts.montserrat(
                                             fontSize: 12,
@@ -893,7 +1173,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: 20,),
+                                SizedBox(
+                                  height: 20,
+                                ),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: sortedList.take(5).map((entry) {
@@ -902,13 +1184,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         Container(
                                           width: 20,
                                           height: 20,
-                                          color: Colors.primaries[sortedList.indexOf(entry) % Colors.primaries.length],
+                                          color: Colors.primaries[
+                                              sortedList.indexOf(entry) %
+                                                  Colors.primaries.length],
                                         ),
                                         SizedBox(width: 8),
                                         Flexible(
                                           child: Text(
                                             '${entry.key} (${(entry.value / quantityMap.values.fold(0.0, (sum, quantity) => sum + quantity) * 100).toStringAsFixed(1)}%)',
-                                            style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.bold),
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             softWrap: false,
@@ -925,7 +1211,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                     ],
                   )
-
                 ],
               ),
             ),
@@ -935,6 +1220,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }
+
 Widget _buildInfoChip(BuildContext context, String label, IconData icon) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

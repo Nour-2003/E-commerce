@@ -5,12 +5,14 @@ import 'package:mobileproject/Cubit/Shop/Shop%20Cubit.dart';
 import 'package:mobileproject/Cubit/Shop/Shop%20States.dart';
 import 'package:mobileproject/Shared/Constants.dart';
 
+import 'Edit Category.dart';
 import 'Product Details Screen.dart';
 
 class CategoryScreen extends StatelessWidget {
   final String categoryName;
   final String role;
-  CategoryScreen({required this.categoryName,required this.role});
+  final String id;
+  CategoryScreen({required this.categoryName,required this.role,required this.id});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,22 @@ class CategoryScreen extends StatelessWidget {
       appBar: AppBar(
         centerTitle: true,
         title: Text(categoryName),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () {
+              // Navigate to the category edit screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditCategoryScreen(categoryName: categoryName,id: id),
+                ),
+              ).then((_){
+                cubit.selectCategory('');
+              });
+            },
+          ),
+        ],
       ),
       body: BlocConsumer<ShopCubit, ShopStates>(
         listener: (context, state) {},

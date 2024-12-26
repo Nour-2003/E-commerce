@@ -61,3 +61,11 @@ class ProductUpdatedErrorState extends ShopStates{
   ProductUpdatedErrorState(this.error);
 }
 class ProductsUpdatedState extends ShopStates{}
+
+class CategoryUpdatedSuccessState extends ShopStates{}
+class CategoryUpdatedErrorState extends ShopStates{
+  String error;
+  CategoryUpdatedErrorState(this.error);
+}
+class CategoriesLoading extends ShopStates{}
+class FavoriteStatusChangedState extends ShopStates{}
