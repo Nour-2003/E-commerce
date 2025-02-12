@@ -27,20 +27,24 @@ class CategoryScreen extends StatelessWidget {
         centerTitle: true,
         title: Text(categoryName),
         actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () {
-              // Navigate to the category edit screen
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditCategoryScreen(categoryName: categoryName,id: id),
-                ),
-              ).then((_){
-                cubit.selectCategory('');
-              });
-            },
-          ),
+          if (role == 'admin')
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditCategoryScreen(
+                      id: id,
+                      categoryName: categoryName,
+                    ),
+                  ),
+                ).then((_) {
+                  cubit.selectCategory('');
+                  cubit.selectCategory(categoryName);
+                });
+              },
+              icon: Icon(Icons.edit),
+            ),
         ],
       ),
       body: BlocConsumer<ShopCubit, ShopStates>(
