@@ -1,4 +1,4 @@
-![WhatsApp Image 2025-02-12 at 14 44 01_a7565529](https://github.com/user-attachments/assets/a8ceed32-1fc5-4775-885b-98f18c236e02) # 📱 E-commerce Mobile Application
+# 📱 E-commerce Mobile Application
 
 A beautiful and responsive ** E-commerce App** built using **Flutter**. This UI design showcases a modern and stylish shopping experience with smooth animations and a user-friendly layout.
 
